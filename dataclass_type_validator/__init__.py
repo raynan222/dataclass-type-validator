@@ -38,9 +38,14 @@ class TypeValidationError(Exception):
         s = cls_name
         return f"{s} (errors = {self.errors})"
 
+def _is_instance(expected_type: type, value: Any):
+    if str(value) == "typing.Any":
+        return True
+    return isinstance(expected_type, value)
+
 
 def _validate_type(expected_type: type, value: Any) -> Optional[str]:
-    if not isinstance(value, expected_type):
+    if not _is_instance(value, expected_type):
         return f'must be an instance of {expected_type}, but received {type(value)}'
 
 
@@ -54,25 +59,25 @@ def _validate_iterable_items(expected_type: type, value: Any, strict: bool, glob
 
 
 def _validate_typing_list(expected_type: type, value: Any, strict: bool, globalns: GlobalNS_T) -> Optional[str]:
-    if not isinstance(value, list):
+    if not _is_instance(value, list):
         return f'must be an instance of list, but received {type(value)}'
     return _validate_iterable_items(expected_type, value, strict, globalns)
 
 
 def _validate_typing_tuple(expected_type: type, value: Any, strict: bool, globalns: GlobalNS_T) -> Optional[str]:
-    if not isinstance(value, tuple):
+    if not _is_instance(value, tuple):
         return f'must be an instance of tuple, but received {type(value)}'
     return _validate_iterable_items(expected_type, value, strict, globalns)
 
 
 def _validate_typing_frozenset(expected_type: type, value: Any, strict: bool, globalns: GlobalNS_T) -> Optional[str]:
-    if not isinstance(value, frozenset):
+    if not _is_instance(value, frozenset):
         return f'must be an instance of frozenset, but received {type(value)}'
     return _validate_iterable_items(expected_type, value, strict, globalns)
 
 
 def _validate_typing_dict(expected_type: type, value: Any, strict: bool, globalns: GlobalNS_T) -> Optional[str]:
-    if not isinstance(value, dict):
+    if not _is_instance(value, dict):
         return f'must be an instance of dict, but received {type(value)}'
 
     expected_key_type = expected_type.__args__[0]
@@ -97,7 +102,7 @@ def _validate_typing_dict(expected_type: type, value: Any, strict: bool, globaln
 
 def _validate_typing_callable(expected_type: type, value: Any, strict: bool, globalns: GlobalNS_T) -> Optional[str]:
     _ = strict
-    if not isinstance(value, type(lambda a: a)):
+    if not _is_instance(value, type(lambda a: a)):
         return f'must be an instance of {expected_type._name}, but received {type(value)}'
 
 
@@ -136,14 +141,14 @@ def _validate_sequential_types(expected_type: type, value: Any, strict: bool, gl
 
 
 def _validate_types(expected_type: type, value: Any, strict: bool, globalns: GlobalNS_T) -> Optional[str]:
-    if isinstance(expected_type, type):
+    if _is_instance(expected_type, type):
         return _validate_type(expected_type=expected_type, value=value)
 
-    if isinstance(expected_type, typing._GenericAlias):
+    if _is_instance(expected_type, typing._GenericAlias):
         return _validate_sequential_types(expected_type=expected_type, value=value,
                                           strict=strict, globalns=globalns)
 
-    if isinstance(expected_type, typing.ForwardRef):
+    if _is_instance(expected_type, typing.ForwardRef):
         referenced_type = _evaluate_forward_reference(expected_type, globalns)
         return _validate_type(expected_type=referenced_type, value=value)
 
